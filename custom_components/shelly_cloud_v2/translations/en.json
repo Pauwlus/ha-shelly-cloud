@@ -1,0 +1,37 @@
+{
+  "title": "Shelly Cloud (API v2)",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Shelly Cloud",
+        "description": "Enter your Shelly Cloud host and cloud key (auth_key).",
+        "data": {
+          "host": "Cloud host (e.g. https://shelly-xx-eu.shelly.cloud)",
+          "auth_key": "Cloud key (auth_key)",
+          "customer_id": "Customer ID (free text)"
+        }
+      },
+      "select_devices": {
+        "title": "Select devices",
+        "description": "Select the devices you want to add from this account.",
+        "data": {
+          "device_ids": "Devices"
+        }
+      }
+    },
+    "error": {
+      "cannot_list_devices": "Could not list devices. Check host/auth_key and try again."
+    },
+    "abort": {}
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "polling_interval": "Polling interval (seconds)"
+        }
+      }
+    }
+  }
+}
