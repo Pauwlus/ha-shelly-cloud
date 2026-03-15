@@ -16,7 +16,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         host=tenant_data["host"],
         auth_key=tenant_data["auth_key"]
     )
-    coordinator = ShellyCloudCoordinator(hass, api)
+    coordinator = ShellyCloudCoordinator(hass, api, entry.data.get("selected_devices", []))
     await coordinator.async_config_entry_first_refresh()
     hass.data[DOMAIN][entry.entry_id] = {
         "tenant_name": tenant_data["name"],
