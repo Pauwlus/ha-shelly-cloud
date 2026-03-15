@@ -6,7 +6,7 @@ import time
 import logging
 from typing import Any, Dict, List, Optional
 
-from aiohttp import ClientSession, ClientResponseError
+from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 RATE_LIMIT_SECONDS = 1.0
 
 class ShellyCloudApi:
-    """Minimal Shelly Cloud API v2 client with auth_key support."""
+    """Shelly Cloud API v2 client using auth_key, with robust device listing."""
 
     def __init__(self, hass: HomeAssistant, host: str, auth_key: str) -> None:
         self.hass = hass
@@ -48,30 +48,64 @@ class ShellyCloudApi:
                     return await resp.json()
 
     async def list_devices(self) -> List[Dict[str, Any]]:
-        """Return list of devices for the account via interface endpoint.
-        Fallback to empty list on error; config_flow will handle errors.
+        """Return list of devices (id, name, code/type) for the account.
+
+        Handles multiple payload shapes observed across Shelly Cloud tenants:
+        - {"devices": [ {...}, ... ]}
+        - {"data": {"devices": [ {...}, ... ]}}
+        - {"data": {"devices": {"<id>": {...}, ... }}} (mapping)
+        - [ {...}, ... ] (bare list)
+        Tries a documented/commonly used interface endpoint first and a
+        get_shared fallback if needed.
         """
-        url = f"{self.host}/interface/device/list?auth_key={self.auth_key}"
-        try:
-            data = await self._throttled_get(url)
-            # Expected format: { "devices": [ {"id": "abcd", "name": "...", "code": "SHPLG-S", ...}, ...]}
-            devices = data.get("devices") or data.get("data") or data
-            if isinstance(devices, dict) and "devices" in devices:
-                devices = devices["devices"]
-            if not isinstance(devices, list):
-                _LOGGER.debug("Unexpected list_devices payload: %s", data)
+        urls = [
+            f"{self.host}/interface/device/list?auth_key={self.auth_key}",
+            f"{self.host}/device/get_shared?auth_key={self.auth_key}",  # fallback
+        ]
+
+        def _extract_devices(payload: dict | list) -> list[dict]:
+            # Bare list at root
+            if isinstance(payload, list):
+                return payload
+
+            if not isinstance(payload, dict):
                 return []
-            # Normalize fields
-            norm = []
-            for d in devices:
-                did = d.get("id") or d.get("device_id") or d.get("_id")
-                name = d.get("name") or d.get("device_name") or d.get("description") or did
-                code = d.get("code") or d.get("type")
-                norm.append({"id": did, "name": name, "code": code})
-            return [x for x in norm if x.get("id")]
-        except Exception as exc:
-            _LOGGER.warning("Shelly list_devices failed: %s", exc)
+
+            # Direct devices
+            if isinstance(payload.get("devices"), list):
+                return payload["devices"]
+            if isinstance(payload.get("devices"), dict):
+                return list(payload["devices"].values())
+
+            # Under data
+            data = payload.get("data") if isinstance(payload.get("data"), dict) else None
+            if data is not None:
+                if isinstance(data.get("devices"), list):
+                    return data["devices"]
+                if isinstance(data.get("devices"), dict):
+                    return list(data["devices"].values())
+
             return []
+
+        for url in urls:
+            try:
+                data = await self._throttled_get(url)
+                raw = _extract_devices(data)
+
+                norm: list[dict] = []
+                for d in raw:
+                    did = d.get("id") or d.get("device_id") or d.get("_id")
+                    name = d.get("name") or d.get("device_name") or d.get("description") or did
+                    code = d.get("code") or d.get("type")
+                    if did:
+                        norm.append({"id": did, "name": name, "code": code})
+                if norm:
+                    return norm
+            except Exception as exc:
+                _LOGGER.debug("list_devices call failed for %s: %s", url, exc)
+
+        _LOGGER.warning("Shelly list_devices returned no devices after all attempts")
+        return []
 
     async def get_states_v2(self, ids: List[str], *, select: Optional[List[str]] = None, pick: Optional[Dict[str, List[str]]] = None) -> List[Dict[str, Any]]:
         if not ids:
