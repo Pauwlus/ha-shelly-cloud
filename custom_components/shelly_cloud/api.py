@@ -9,21 +9,29 @@ class ShellyCloudTenantApi:
         self.auth_key = auth_key
 
     async def get_devices(self):
-        headers = {"Authorization": f"Bearer {self.auth_key}"}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{self.host}/devices", headers=headers) as resp:
-                try:
-                    data = await resp.json()
-                except Exception as e:
-                    _LOGGER.error("Failed to parse devices JSON: %s", e)
-                    return []
+        """Return a list of device dictionaries from Shelly Cloud."""
+        url = f"{self.host}/interface/device/list?auth_key={self.auth_key}"
 
-                # Handle if the JSON is a dict with 'devices' key
-                if isinstance(data, dict) and "devices" in data:
-                    return data["devices"]
-                # Handle if JSON is already a list
-                if isinstance(data, list):
-                    return data
-                # Unexpected format
-                _LOGGER.error("Unexpected devices data format: %s", type(data))
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(url) as resp:
+                    data = await resp.json()
+            except Exception as e:
+                _LOGGER.error("Failed to fetch devices: %s", e)
                 return []
+
+        # Check if response is valid
+        if not data.get("isok") or "data" not in data or "devices" not in data["data"]:
+            _LOGGER.error("Invalid response from Shelly Cloud: %s", data)
+            return []
+
+        devices_dict = data["data"]["devices"]
+
+        # Convert dict of devices to list
+        devices_list = []
+        for device_id, device_info in devices_dict.items():
+            # Ensure each device has an 'id' field (some do already, fallback to dict key)
+            device_info.setdefault("id", device_id)
+            devices_list.append(device_info)
+
+        return devices_list
