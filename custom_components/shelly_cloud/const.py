@@ -1,2 +1,2 @@
-DOMAIN = "multi_shelly_cloud"
+DOMAIN = "shelly_cloud"
 PLATFORMS = ["sensor"]
