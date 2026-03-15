@@ -7,7 +7,7 @@ from .const import DOMAIN
 async def async_setup_entry(hass, entry, async_add_entities):
     tenant = hass.data[DOMAIN][entry.entry_id]
     coordinator = tenant["coordinator"]
-    devices = coordinator.data.get("devices", [])
+    devices = coordinator.data or []
     sensors = []
     for dev in devices:
         if "power" in dev:
