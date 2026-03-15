@@ -84,4 +84,17 @@ class MultiShellyCloudConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data=self.tenant_data,
             )
 
-        data_schema =_
+        data_schema = {
+            "selected_devices": selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=options,
+                    multiple=True,
+                    mode="dropdown",
+                )
+            )
+        }
+
+        return self.async_show_form(
+            step_id="select_devices",
+            data_schema=data_schema,
+        )
