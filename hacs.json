@@ -1,7 +1,12 @@
 {
   "name": "Shelly Cloud",
-  "domain": "shelly_cloud",
   "content_in_root": false,
+  "domain": "shelly_cloud",
   "homeassistant": "2024.12.0",
+  "zip_release": true,
+  "startup": "services",
+  "documentation": "https://github.com/Pauwlus/ha-shelly-cloud",
+  "requirements": [],
   "render_readme": true,
+  "iot_class": "cloud_polling"
 }
