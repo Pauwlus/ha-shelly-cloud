@@ -1,6 +1,6 @@
 {
-  "domain": "multi_shelly_cloud",
-  "name": "Multi Shelly Cloud",
+  "domain": "shelly_cloud",
+  "name": "Shelly Cloud",
   "version": "1.2.0",
   "documentation": "https://github.com/Pauwlus/ha-shelly-cloud",
   "requirements": ["aiohttp", "voluptuous"],
