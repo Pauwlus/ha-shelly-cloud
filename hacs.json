@@ -1,5 +1,5 @@
 {
-  "name": "multi_shelly_cloud",
+  "name": "Multi Shelly Cloud",
   "content_in_root": false,
   "homeassistant": "2024.12.0",
   "render_readme": true,
