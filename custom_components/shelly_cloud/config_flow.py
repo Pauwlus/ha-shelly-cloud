@@ -1,4 +1,5 @@
 import logging
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import selector
 from .const import DOMAIN
@@ -17,11 +18,11 @@ class MultiShellyCloudConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.tenant_data = user_input
             return await self.async_step_select_devices()
 
-        data_schema = {
-            "name": selector.TextSelector(),
-            "host": selector.TextSelector(),
-            "auth_key": selector.TextSelector()
-        }
+        data_schema = vol.Schema({
+            vol.Required("name"): selector.TextSelector(),
+            vol.Required("host"): selector.TextSelector(),
+            vol.Required("auth_key"): selector.TextSelector()
+        })
 
         return self.async_show_form(
             step_id="user",
@@ -52,16 +53,16 @@ class MultiShellyCloudConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data=self.tenant_data
             )
 
-        # Use HA SelectSelector with multiple=True
-        data_schema = {
-            "selected_devices": selector.SelectSelector(
+        # Use HA SelectSelector with multiple=True inside a Voluptuous schema
+        data_schema = vol.Schema({
+            vol.Required("selected_devices"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=list(self.device_options.keys()),
                     multiple=True,
                     mode="dropdown"
                 )
             )
-        }
+        })
 
         return self.async_show_form(
             step_id="select_devices",
