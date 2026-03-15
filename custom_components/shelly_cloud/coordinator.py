@@ -1,4 +1,3 @@
-
 from datetime import timedelta
 import logging
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -12,7 +11,7 @@ class ShellyCloudCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(seconds=60),
+            update_interval=timedelta(seconds=60)
         )
         self.api = api
 
