@@ -1,5 +1,4 @@
 import logging
-import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import selector
 from .const import DOMAIN
@@ -18,11 +17,14 @@ class MultiShellyCloudConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.tenant_data = user_input
             return await self.async_step_select_devices()
 
-        data_schema = vol.Schema({
-            vol.Required("name"): selector.TextSelector(),
-            vol.Required("host"): selector.TextSelector(),
-            vol.Required("auth_key"): selector.TextSelector()
-        })
+        # Show form with placeholder for host
+        data_schema = {
+            "name": selector.TextSelector(),
+            "host": selector.TextSelector(
+                placeholder="https://shelly-xx-eu.shelly.cloud/"
+            ),
+            "auth_key": selector.TextSelector()
+        }
 
         return self.async_show_form(
             step_id="user",
@@ -34,35 +36,40 @@ class MultiShellyCloudConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         api = ShellyCloudTenantApi(
             self.tenant_data["host"], self.tenant_data["auth_key"]
         )
-        devices = await api.get_devices()
 
-        # Handle dict vs list
-        if isinstance(devices, dict) and "devices" in devices:
-            devices = devices["devices"]
-        elif not isinstance(devices, list):
-            _LOGGER.error("Unexpected devices data format: %s", type(devices))
-            devices = []
+        # Fetch devices from Shelly Cloud
+        devices_resp = await api.get_devices()
 
-        # Build options for selector
-        self.device_options = {d["id"]: d.get("name", d["id"]) for d in devices}
+        if not devices_resp.get("isok") or "data" not in devices_resp:
+            _LOGGER.error("Invalid response from Shelly Cloud: %s", devices_resp)
+            devices = {}
+        else:
+            devices = devices_resp["data"].get("devices", {})
+
+        # Build selector options as list of dicts with 'value' and 'label'
+        self.device_options = [
+            {"value": device["id"], "label": device.get("name", device["id"])}
+            for device in devices.values()
+        ]
 
         if user_input is not None:
+            # Store selected devices in tenant data
             self.tenant_data["selected_devices"] = user_input.get("selected_devices", [])
             return self.async_create_entry(
                 title=self.tenant_data["name"],
                 data=self.tenant_data
             )
 
-        # Use HA SelectSelector with multiple=True inside a Voluptuous schema
-        data_schema = vol.Schema({
-            vol.Required("selected_devices"): selector.SelectSelector(
+        # HA SelectSelector with multiple=True
+        data_schema = {
+            "selected_devices": selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=list(self.device_options.keys()),
+                    options=self.device_options,
                     multiple=True,
                     mode="dropdown"
                 )
             )
-        })
+        }
 
         return self.async_show_form(
             step_id="select_devices",
