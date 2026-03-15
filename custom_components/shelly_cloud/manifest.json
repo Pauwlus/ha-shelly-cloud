@@ -1,0 +1,15 @@
+{
+  "domain": "shelly_cloud",
+  "name": "Shelly Cloud (Modern)",
+  "version": "1.0.0",
+  "documentation": "https://github.com/Pauwlus/ha-shelly-cloud",
+  "requirements": [
+    "aiohttp"
+  ],
+  "dependencies": [],
+  "codeowners": [
+    "@Pauwlus"
+  ],
+  "iot_class": "cloud_polling",
+  "config_flow": true
+}
